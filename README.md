@@ -24,6 +24,7 @@ You can change the default behavior of this packager by using the environment va
 | `ARTIFACT_NAME` | `deployment.zip` | no | name of your artifact or zip file that you want to output |
 | `CI_WORKSPACE` | `$(pwd)` | no | workspace directory __inside__ your container |
 | `REQUIREMENTS_FILE` | `requirements.txt` | no (python only) | Your pip requirements file |
+| `PRESERVE_ROOT` | `False` | no (python only) | Whether or not to keep your `src` files in a `src` folder of the build |
 
 ### Build this container
 

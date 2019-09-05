@@ -3,17 +3,41 @@ RUNTIME ?= python
 
 build:
 	docker build \
-	-t 3mcloud/lambda-packager:$(RUNTIME)-$(VERSION) \
-	-f $(RUNTIME)/$(VERSION)/Dockerfile python/$(VERSION)/.
+		--target base \
+		--build-arg VERSION=$(VERSION) \
+		-t 3mcloud/lambda-packager:$(RUNTIME)-$(VERSION) \
+		-f $(RUNTIME)/$(VERSION)/Dockerfile .
+
+build-test:
+	docker build \
+		--target test \
+		--build-arg VERSION=$(VERSION) \
+		-t 3mcloud/lambda-packager:$(RUNTIME)-$(VERSION)-test \
+		-f $(RUNTIME)/$(VERSION)/Dockerfile .
 
 push:
 	docker push 3mcloud/lambda-packager:$(RUNTIME)-$(VERSION)
 
 publish: build push
 
-test: build
-	rm -rf ${PWD}/tests/$(RUNTIME)/$(VERSION)/deployment.zip
+develop: build-test
 	docker run -it --rm \
-		-w /test \
-		-v ${PWD}/tests/$(RUNTIME)/$(VERSION):/test \
-		3mcloud/lambda-packager:$(RUNTIME)-$(VERSION) ./test.sh
+		-w / \
+		-v ${PWD}/$(RUNTIME)/$(VERSION):/src \
+		-v ${PWD}/tests/$(RUNTIME)/$(VERSION):/tests \
+		3mcloud/lambda-packager:$(RUNTIME)-$(VERSION)-test
+
+test: build-test
+	# rm -rf ${PWD}/tests/$(RUNTIME)/$(VERSION)/deployment.zip
+	docker run -it --rm \
+		-w / \
+		-v ${PWD}/tests/$(RUNTIME)/$(VERSION):/tests \
+		3mcloud/lambda-packager:$(RUNTIME)-$(VERSION)-test \
+		python3 -m pytest -v \
+			-W ignore::DeprecationWarning \
+			--cov-report term-missing \
+			--cov=entrypoint.py \
+			--cov-fail-under=80 \
+			tests
+
+

@@ -1,4 +1,4 @@
-FROM amazonlinux:2017.03
+FROM amazonlinux:2017.03 as base
 
 RUN yum -y install git \
     python36 \
@@ -10,6 +10,15 @@ RUN yum -y install git \
 
 RUN python3 -m pip install --upgrade pip
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-CMD /entrypoint.sh
+ARG VERSION
+
+COPY python/${VERSION}/entrypoint.py /entrypoint.py
+RUN chmod +x /entrypoint.py
+CMD ["python3", "/entrypoint.py"]
+
+FROM base as test
+ARG VERSION
+COPY tests/python /tests
+COPY python/${VERSION}/requirements-test.pip .
+RUN pip install -r requirements-test.pip
+CMD ["/bin/bash"]
