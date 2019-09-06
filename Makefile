@@ -28,16 +28,16 @@ develop: build-test
 		3mcloud/lambda-packager:$(RUNTIME)-$(VERSION)-test
 
 test: build-test
-	# rm -rf ${PWD}/tests/$(RUNTIME)/$(VERSION)/deployment.zip
 	docker run -it --rm \
 		-w / \
+		-v ${PWD}/$(RUNTIME)/$(VERSION):/src \
 		-v ${PWD}/tests/$(RUNTIME)/$(VERSION):/tests \
 		3mcloud/lambda-packager:$(RUNTIME)-$(VERSION)-test \
-		python3 -m pytest -v \
-			-W ignore::DeprecationWarning \
-			--cov-report term-missing \
-			--cov=entrypoint.py \
-			--cov-fail-under=80 \
-			tests
+			python3 -m pytest -v \
+				-W ignore::DeprecationWarning \
+				--cov-report term-missing \
+				--cov=/src/entrypoint.py \
+				--cov-fail-under=80 \
+				tests
 
 

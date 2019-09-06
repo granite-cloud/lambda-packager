@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import sys
 import subprocess
@@ -7,13 +8,21 @@ from types import SimpleNamespace
 from pathlib import Path
 import zipfile
 
-
 logging.basicConfig(
     level=logging.DEBUG if os.environ.get('DEBUG') else logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
     ]
+)
+
+constants = SimpleNamespace(
+    code_dir=('LAMBDA_CODE_DIR', 'src'),
+    artifact_name=('ARTIFACT_NAME', 'deployment.zip'),
+    build_directory=('CONTAINER_BUILD_DIRECTORY', './package'),
+    workspace=('CI_WORKSPACE', os.getcwd()),
+    requirements_file=('REQUIREMENTS_FILE', 'requirements.txt'),
+    preserve_root=('PRESERVE_ROOT', False),
 )
 
 def get_constant(key: str, default_value: str):
@@ -27,23 +36,17 @@ def get_constant(key: str, default_value: str):
         if 'bool' not in str(error):
             raise error
 
+    # force path to work in CWD and not outside of it
     if isinstance(value, str):
-        value = os.path.normpath(value)
+        value = os.path.normpath(f'/{value}')
+        value = re.sub(
+            r'\/{2,}',
+            '/',
+            f'{os.getcwd()}/{value}',
+        )
 
     logging.debug('get_constant(%s, %s)', key, value)
-    # test_path = (Path(CWD) / value).resolve()
-    # if test_path.parent != Path(basedir).resolve():
-    #     raise PermissionError(f'Filename {test_path} is not in {Path(CWD)} directory')
     return value
-
-constants = SimpleNamespace(
-    code_dir=('LAMBDA_CODE_DIR', 'src'),
-    artifact_name=('ARTIFACT_NAME', 'deployment.zip'),
-    build_directory=('CONTAINER_BUILD_DIRECTORY', './package'),
-    workspace=('CI_WORKSPACE', os.getcwd()),
-    requirements_file=('REQUIREMENTS_FILE', 'requirements.txt'),
-    preserve_root=('PRESERVE_ROOT', False),
-)
 
 def copy_source_to_build():
     '''
@@ -116,12 +119,8 @@ def main():
     copy_source_to_build()
     if install_dependencies() != 0:
         raise Exception('NonZero exit code when installing dependencies')
+    package_contents()
     logging.info('done')
-
-# cd ${BUILD_DIR}
-# [ -e ${REQUIREMENTS_FILE} ] && pip install -r ${REQUIREMENTS_FILE} -t ./
-# chmod -R 755 .
-# zip -r9 ${WORKSPACE}/${ARTIFACT} * -x '*.pyc' -x ${REQUIREMENTS_FILE} -x '${ARTIFACT}'
 
 if __name__ == '__main__':
     main()

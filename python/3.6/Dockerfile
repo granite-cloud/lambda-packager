@@ -17,8 +17,8 @@ RUN chmod +x /entrypoint.py
 CMD ["python3", "/entrypoint.py"]
 
 FROM base as test
-ARG VERSION
-COPY tests/python /tests
-COPY python/${VERSION}/requirements-test.pip .
+COPY python/3.6/requirements-test.pip .
 RUN pip install -r requirements-test.pip
+COPY tests/python /tests
+COPY python/3.6 /src
 CMD ["/bin/bash"]
